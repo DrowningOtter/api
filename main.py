@@ -16,24 +16,20 @@ subfolder_name = "files/"
 class File(Resource):
     def get(self, filename=''):
         parser = reqparse.RequestParser()
-        # parser.add_argument("files", location='args', type=str)
         parser.add_argument("filter", location='args', type=str)
         parser.add_argument("sort", location='args', type=str)
         params = parser.parse_args()
         subfolder_fullpath = os.path.join(os.getcwd(), subfolder_name)
-        # if params["files"] == "all":
         if filename == '':
             #return list of all files with columns info
             return_list = []
             for file in os.listdir(subfolder_fullpath):
                 try:
-                    print(os.path.join(subfolder_fullpath, file))
+                    # print(os.path.join(subfolder_fullpath, file))
                     df = pd.read_csv(os.path.join(subfolder_fullpath, file))
                     
                 except FileNotFoundError:
                     return 'No such file found', 400
-                # except Exception:
-                #     return 'Some problems in files/ directory', 400
                 res = df.describe(include='all').loc[['count', 'unique', 'top']]
                 current_dict = {
                     'filename': file,
@@ -47,7 +43,6 @@ class File(Resource):
                         'top': str(res.loc['top', title])
                     }
                     current_dict["columns"].append(tmp_dict)
-                # print(current_dict)
                 return_list.append(current_dict)
             return return_list, 200
         else:
@@ -62,31 +57,17 @@ class File(Resource):
                 if params["filter"] != None:
                     filter_parameters = params["filter"].split(',')
                     res = df[[str for str in df if str in filter_parameters]]
-                if params["sort"] != None:
-                    sort = params["sort"].split(',')
-                    res = res.sort_values(sort)
+                    if params["sort"] != None:
+                        sort = params["sort"].split(',')
+                        res = res.sort_values(sort)
                     return_dict = res.to_json(orient='index')
-                    print(return_dict)
 
             if found:
                 return return_dict, 200
             return 'File not found', 400
 
-        dir_name = os.path.join(os.getcwd(), subfolder_name)
-        for file in os.listdir(dir_name):
-            file_fullpath = os.path.join(dir_name, file)
-            if filename == file:
-                fd = open(file_fullpath, 'r')
-                ans = fd.read()
-                fd.close()
-                return ans, 200
-        return 'File not found', 400
-
 
     def post(self, filename):
-        # parser = reqparse.RequestParser()
-        # parser.add_argument("filename", location='headers')
-        # params = parser.parse_args()
         f = request.files['file']
         current_path = os.getcwd()
         subfolder_path = os.path.join(current_path, subfolder_name)
@@ -94,11 +75,11 @@ class File(Resource):
             os.mkdir(subfolder_path)
         except FileExistsError:
             pass
-        # with open(subfolder_path + filename, 'wb') as file:
-        #     file.write(*f)
-        df = pd.read_csv(f)
-        # print(df)
-
+        # df = pd.read_csv(f)
+        file = open(os.path.join(subfolder_path, filename), 'wb')
+        # file.write(*f)
+        f.save(file)
+        file.close()
         return 'File has been uploaded', 200
 
     def delete(self, filename):
